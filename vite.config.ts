@@ -3,9 +3,10 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
-export default defineConfig(({ command, mode }) => ({
-  base: command === "build" ? "/cloudscape-devops-glow/" : "/",
+export default defineConfig(({ mode }) => ({
+  // ✅ Set base to your repo name for GitHub Pages
+  base: mode === "production" ? "/cloudscape-devops-glow/" : "/",
+
   server: {
     host: "::",
     port: 8080,
