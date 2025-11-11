@@ -33,13 +33,13 @@ const CursorEffect = () => {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    // Warm fog colors - amber, orange, yellow, gold
+    // Warm fog colors - subtle amber, orange, yellow, gold
     const colors = [
-      "rgba(251, 191, 36, 0.4)",   // amber
-      "rgba(249, 115, 22, 0.35)",  // orange
-      "rgba(234, 179, 8, 0.4)",    // yellow
-      "rgba(217, 119, 6, 0.35)",   // dark orange
-      "rgba(245, 158, 11, 0.4)",   // amber variant
+      "rgba(251, 191, 36, 0.15)",   // amber
+      "rgba(249, 115, 22, 0.12)",  // orange
+      "rgba(234, 179, 8, 0.15)",    // yellow
+      "rgba(217, 119, 6, 0.12)",   // dark orange
+      "rgba(245, 158, 11, 0.15)",   // amber variant
     ];
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -54,17 +54,17 @@ const CursorEffect = () => {
       const dy = mouse.y - mouse.prevY;
       const speed = Math.sqrt(dx * dx + dy * dy);
 
-      // Create more particles based on speed
-      const particleCount = Math.min(Math.floor(speed / 3) + 1, 5);
+      // Create fewer, smaller particles based on speed
+      const particleCount = Math.min(Math.floor(speed / 5) + 1, 3);
       
       for (let i = 0; i < particleCount; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const velocity = 0.5 + Math.random() * 0.5;
+        const velocity = 0.3 + Math.random() * 0.3;
         
-        // Size and life based on speed
-        const sizeFactor = Math.min(speed / 20, 2);
-        const size = (40 + Math.random() * 60) * (0.8 + sizeFactor * 0.2);
-        const maxLife = 60 + Math.random() * 40;
+        // Smaller size and shorter life based on speed
+        const sizeFactor = Math.min(speed / 25, 1.5);
+        const size = (25 + Math.random() * 35) * (0.7 + sizeFactor * 0.15);
+        const maxLife = 40 + Math.random() * 30;
 
         particlesRef.current.push({
           x: mouse.x + (Math.random() - 0.5) * 30,
@@ -118,10 +118,10 @@ const CursorEffect = () => {
           );
           
           const colorWithOpacity = particle.color.replace(/[\d.]+\)$/g, 
-            `${particle.opacity * 0.15})`
+            `${particle.opacity * 0.08})`
           );
           const colorCenterWithOpacity = particle.color.replace(/[\d.]+\)$/g, 
-            `${particle.opacity * 0.35})`
+            `${particle.opacity * 0.18})`
           );
 
           gradient.addColorStop(0, colorCenterWithOpacity);
@@ -148,7 +148,7 @@ const CursorEffect = () => {
           );
           
           const coreColor = particle.color.replace(/[\d.]+\)$/g, 
-            `${particle.opacity * 0.5})`
+            `${particle.opacity * 0.25})`
           );
           
           coreGradient.addColorStop(0, coreColor);
