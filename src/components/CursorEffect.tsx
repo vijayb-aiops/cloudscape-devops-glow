@@ -1,21 +1,16 @@
 import { useEffect, useRef } from "react";
 
-interface Particle {
+interface TrailPoint {
   x: number;
   y: number;
-  vx: number;
-  vy: number;
   life: number;
   maxLife: number;
-  size: number;
-  color: string;
-  opacity: number;
 }
 
 const CursorEffect = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const particlesRef = useRef<Particle[]>([]);
-  const mouseRef = useRef({ x: 0, y: 0, prevX: 0, prevY: 0 });
+  const trailPointsRef = useRef<TrailPoint[]>([]);
+  const mouseRef = useRef({ x: 0, y: 0 });
   const animationRef = useRef<number>();
 
   useEffect(() => {
@@ -33,140 +28,60 @@ const CursorEffect = () => {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    // Warm fog colors - subtle amber, orange, yellow, gold
-    const colors = [
-      "rgba(251, 191, 36, 0.15)",   // amber
-      "rgba(249, 115, 22, 0.12)",  // orange
-      "rgba(234, 179, 8, 0.15)",    // yellow
-      "rgba(217, 119, 6, 0.12)",   // dark orange
-      "rgba(245, 158, 11, 0.15)",   // amber variant
-    ];
-
     const handleMouseMove = (e: MouseEvent) => {
-      const mouse = mouseRef.current;
-      mouse.prevX = mouse.x;
-      mouse.prevY = mouse.y;
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
+      mouseRef.current.x = e.clientX;
+      mouseRef.current.y = e.clientY;
 
-      // Calculate speed for reactive fog
-      const dx = mouse.x - mouse.prevX;
-      const dy = mouse.y - mouse.prevY;
-      const speed = Math.sqrt(dx * dx + dy * dy);
+      // Add new trail point
+      trailPointsRef.current.push({
+        x: e.clientX,
+        y: e.clientY,
+        life: 30,
+        maxLife: 30,
+      });
 
-      // Create fewer, smaller particles based on speed
-      const particleCount = Math.min(Math.floor(speed / 5) + 1, 3);
-      
-      for (let i = 0; i < particleCount; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const velocity = 0.3 + Math.random() * 0.3;
-        
-        // Smaller size and shorter life based on speed
-        const sizeFactor = Math.min(speed / 25, 1.5);
-        const size = (25 + Math.random() * 35) * (0.7 + sizeFactor * 0.15);
-        const maxLife = 40 + Math.random() * 30;
-
-        particlesRef.current.push({
-          x: mouse.x + (Math.random() - 0.5) * 30,
-          y: mouse.y + (Math.random() - 0.5) * 30,
-          vx: Math.cos(angle) * velocity,
-          vy: Math.sin(angle) * velocity,
-          life: maxLife,
-          maxLife,
-          size,
-          color: colors[Math.floor(Math.random() * colors.length)],
-          opacity: 0,
-        });
+      // Limit trail length
+      if (trailPointsRef.current.length > 30) {
+        trailPointsRef.current.shift();
       }
     };
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Update and draw particles
-      particlesRef.current = particlesRef.current.filter((particle) => {
-        particle.life--;
-        particle.x += particle.vx;
-        particle.y += particle.vy;
+      // Update and draw trail points
+      trailPointsRef.current = trailPointsRef.current.filter((point) => {
+        point.life--;
 
-        // Fade in and out with smooth transitions
-        const lifeRatio = particle.life / particle.maxLife;
-        if (lifeRatio > 0.7) {
-          // Fade in
-          particle.opacity = (1 - lifeRatio) / 0.3;
-        } else if (lifeRatio < 0.3) {
-          // Fade out
-          particle.opacity = lifeRatio / 0.3;
-        } else {
-          particle.opacity = 1;
-        }
+        if (point.life > 0) {
+          const opacity = point.life / point.maxLife;
+          const size = 6 * opacity;
 
-        // Slow down particles over time
-        particle.vx *= 0.98;
-        particle.vy *= 0.98;
+          // Draw smooth circle
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(29, 78, 216, ${opacity * 0.4})`;
+          ctx.fill();
 
-        // Draw soft fog with multiple layers for depth
-        if (particle.life > 0 && particle.opacity > 0) {
-          // Outer glow
+          // Add subtle glow
           const gradient = ctx.createRadialGradient(
-            particle.x,
-            particle.y,
+            point.x,
+            point.y,
             0,
-            particle.x,
-            particle.y,
-            particle.size * 1.5
+            point.x,
+            point.y,
+            size * 2
           );
+          gradient.addColorStop(0, `rgba(29, 78, 216, ${opacity * 0.2})`);
+          gradient.addColorStop(1, "rgba(29, 78, 216, 0)");
           
-          const colorWithOpacity = particle.color.replace(/[\d.]+\)$/g, 
-            `${particle.opacity * 0.08})`
-          );
-          const colorCenterWithOpacity = particle.color.replace(/[\d.]+\)$/g, 
-            `${particle.opacity * 0.18})`
-          );
-
-          gradient.addColorStop(0, colorCenterWithOpacity);
-          gradient.addColorStop(0.3, colorWithOpacity);
-          gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-
-          ctx.filter = "blur(20px)";
           ctx.fillStyle = gradient;
-          ctx.fillRect(
-            particle.x - particle.size * 1.5,
-            particle.y - particle.size * 1.5,
-            particle.size * 3,
-            particle.size * 3
-          );
-
-          // Inner core for more defined center
-          const coreGradient = ctx.createRadialGradient(
-            particle.x,
-            particle.y,
-            0,
-            particle.x,
-            particle.y,
-            particle.size * 0.6
-          );
-          
-          const coreColor = particle.color.replace(/[\d.]+\)$/g, 
-            `${particle.opacity * 0.25})`
-          );
-          
-          coreGradient.addColorStop(0, coreColor);
-          coreGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-
-          ctx.filter = "blur(10px)";
-          ctx.fillStyle = coreGradient;
-          ctx.fillRect(
-            particle.x - particle.size * 0.6,
-            particle.y - particle.size * 0.6,
-            particle.size * 1.2,
-            particle.size * 1.2
-          );
-
-          ctx.filter = "none";
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, size * 2, 0, Math.PI * 2);
+          ctx.fill();
         }
 
-        return particle.life > 0;
+        return point.life > 0;
       });
 
       animationRef.current = requestAnimationFrame(animate);
@@ -188,7 +103,7 @@ const CursorEffect = () => {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none"
-      style={{ zIndex: 0 }}
+      style={{ zIndex: -1 }}
     />
   );
 };
